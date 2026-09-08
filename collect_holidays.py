@@ -26,9 +26,11 @@ def request_page(key, year, page):
                     raise ValueError("HTTP failure")
                 content = response.read(MAX_RESPONSE_BYTES + 1)
             break
-        except (URLError, OSError):
+        except (URLError, OSError) as error:
             if attempt == 1:
                 raise
+            if isinstance(error, HTTPError):
+                error.close()
             time.sleep(2)
     if len(content) > MAX_RESPONSE_BYTES:
         raise ValueError("Response too large")
@@ -128,6 +130,8 @@ def main():
                     details += "/code-" + code
             except (ElementTree.ParseError, OSError):
                 details += "/non-XML-error"
+            finally:
+                error.close()
         elif isinstance(error, URLError):
             details += "/" + type(error.reason).__name__
         print(f"Official holiday collection failed ({details}); previous data preserved.", file=sys.stderr)
