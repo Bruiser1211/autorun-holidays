@@ -2,10 +2,12 @@ import json
 import os
 import sys
 import tempfile
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlencode
 from urllib.request import Request, urlopen
+from urllib.error import URLError
 from xml.etree import ElementTree
 
 
@@ -17,10 +19,17 @@ KST = timezone(timedelta(hours=9))
 def request_page(key, year, page):
     query = urlencode({"ServiceKey": key, "solYear": year, "pageNo": page, "numOfRows": 100})
     request = Request(ENDPOINT + "?" + query, headers={"User-Agent": "Autorun-HolidayPublisher/1"})
-    with urlopen(request, timeout=15) as response:
-        if response.status != 200:
-            raise ValueError("HTTP failure")
-        content = response.read(MAX_RESPONSE_BYTES + 1)
+    for attempt in range(3):
+        try:
+            with urlopen(request, timeout=15) as response:
+                if response.status != 200:
+                    raise ValueError("HTTP failure")
+                content = response.read(MAX_RESPONSE_BYTES + 1)
+            break
+        except (URLError, OSError):
+            if attempt == 2:
+                raise
+            time.sleep(2)
     if len(content) > MAX_RESPONSE_BYTES:
         raise ValueError("Response too large")
     return content
@@ -100,8 +109,11 @@ def main():
         os.replace(temporary, target)
         print("Verified years: " + ", ".join(payload["years"]))
         return 0
-    except Exception:
-        print("Official holiday collection failed; previous data preserved.", file=sys.stderr)
+    except Exception as error:
+        details = type(error).__name__
+        if isinstance(error, URLError):
+            details += "/" + type(error.reason).__name__
+        print(f"Official holiday collection failed ({details}); previous data preserved.", file=sys.stderr)
         return 1
     finally:
         if temporary:
