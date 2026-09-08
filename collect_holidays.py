@@ -113,6 +113,17 @@ def main():
         details = type(error).__name__
         if isinstance(error, HTTPError):
             details += "/" + str(error.code)
+            try:
+                body = ElementTree.fromstring(error.read(4096))
+                auth_message = body.findtext(".//returnAuthMsg")
+                known_errors = {
+                    "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "SERVICE_KEY_IS_NOT_REGISTERED",
+                    "SERVICE_ACCESS_DENIED_ERROR", "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR",
+                    "DEADLINE_HAS_EXPIRED_ERROR", "UNREGISTERED_IP_ERROR", "HTTPS_ONLY_ERROR",
+                }
+                details += "/" + (auth_message if auth_message in known_errors else "XML-error")
+            except (ElementTree.ParseError, OSError):
+                details += "/non-XML-error"
         elif isinstance(error, URLError):
             details += "/" + type(error.reason).__name__
         print(f"Official holiday collection failed ({details}); previous data preserved.", file=sys.stderr)
