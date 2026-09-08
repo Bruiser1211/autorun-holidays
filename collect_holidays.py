@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import unquote, urlencode
 from urllib.request import Request, urlopen
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from xml.etree import ElementTree
 
 
@@ -111,7 +111,9 @@ def main():
         return 0
     except Exception as error:
         details = type(error).__name__
-        if isinstance(error, URLError):
+        if isinstance(error, HTTPError):
+            details += "/" + str(error.code)
+        elif isinstance(error, URLError):
             details += "/" + type(error.reason).__name__
         print(f"Official holiday collection failed ({details}); previous data preserved.", file=sys.stderr)
         return 1
