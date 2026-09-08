@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   refresh:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,6 +26,7 @@ jobs:
           DATA_GO_KR_API_KEY: ${{ secrets.DATA_GO_KR_API_KEY }}
         run: python collect_holidays.py
       - name: Publish data and verification timestamp
+        shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

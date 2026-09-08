@@ -19,15 +19,15 @@ KST = timezone(timedelta(hours=9))
 def request_page(key, year, page):
     query = urlencode({"ServiceKey": key, "solYear": year, "pageNo": page, "numOfRows": 100})
     request = Request(ENDPOINT + "?" + query, headers={"User-Agent": "Autorun-HolidayPublisher/1"})
-    for attempt in range(3):
+    for attempt in range(2):
         try:
-            with urlopen(request, timeout=15) as response:
+            with urlopen(request, timeout=45) as response:
                 if response.status != 200:
                     raise ValueError("HTTP failure")
                 content = response.read(MAX_RESPONSE_BYTES + 1)
             break
         except (URLError, OSError):
-            if attempt == 2:
+            if attempt == 1:
                 raise
             time.sleep(2)
     if len(content) > MAX_RESPONSE_BYTES:
@@ -79,6 +79,7 @@ def collect_snapshot(key, now=None, fetch=request_page):
     current_year = now.astimezone(KST).year
     years = {}
     for year in range(current_year - 1, current_year + 2):
+        print(f"Checking official year: {year}", flush=True)
         entries = collect_year(key, year, fetch)
         if not entries and year <= current_year:
             raise ValueError("Required year missing")
