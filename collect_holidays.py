@@ -115,13 +115,16 @@ def main():
             details += "/" + str(error.code)
             try:
                 body = ElementTree.fromstring(error.read(4096))
-                auth_message = body.findtext(".//returnAuthMsg")
+                auth_message = body.findtext(".//returnAuthMsg") or body.findtext(".//resultMsg")
                 known_errors = {
                     "SERVICE_KEY_IS_NOT_REGISTERED_ERROR", "SERVICE_KEY_IS_NOT_REGISTERED",
                     "SERVICE_ACCESS_DENIED_ERROR", "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR",
                     "DEADLINE_HAS_EXPIRED_ERROR", "UNREGISTERED_IP_ERROR", "HTTPS_ONLY_ERROR",
                 }
                 details += "/" + (auth_message if auth_message in known_errors else "XML-error")
+                code = body.findtext(".//resultCode") or body.findtext(".//returnReasonCode") or ""
+                if code.isdigit() and len(code) <= 3:
+                    details += "/code-" + code
             except (ElementTree.ParseError, OSError):
                 details += "/non-XML-error"
         elif isinstance(error, URLError):
